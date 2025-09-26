@@ -98,10 +98,7 @@
               <div class="passage-list-header">
                 <h3>選擇段落</h3>
                 <div style="display:flex;gap:6px;align-items:center">
-                  <select id="languageFilter" aria-label="語言篩選">
-                    <option value="zh-Hant">繁體中文</option>
-                    <option value="en" selected>English</option>
-                  </select>
+                  <span style="font-size:12px;color:#6b7280">English only</span>
                   <select id="difficultyFilter" aria-label="難度篩選">
                     <option value="all" selected>全部難度</option>
                     <option value="beginner">初級 ≈50字</option>
@@ -204,9 +201,9 @@
           <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
         </div>
       </div>
-      <div class="container commit-strip" aria-label="最近推送代號">
-        <div class="commit-title"><i class="fa-solid fa-code-branch"></i> 最近推送代號</div>
-        <div id="commitList" class="commit-list" aria-live="polite">載入中…</div>
+      <div class="container commit-strip" aria-label="版本號">
+        <div class="commit-title"><i class="fa-solid fa-code-branch"></i> 版本號</div>
+        <div id="versionText" class="commit-list" aria-live="polite">V1</div>
       </div>
     </footer>
 

@@ -134,7 +134,7 @@ body{
 .commit-strip{padding:10px 0 18px;display:grid;gap:6px}
 .commit-title{font-weight:800;color:var(--text)}
 .commit-list{display:flex;gap:8px;flex-wrap:wrap}
-.commit-chip{background:var(--card);border:1px solid rgba(0,0,0,.08);color:var(--text);border-radius:999px;padding:6px 10px;font-size:12px}
+.commit-chip, #versionText{background:var(--card);border:1px solid rgba(0,0,0,.08);color:var(--text);border-radius:999px;padding:6px 10px;font-size:12px}
 
 /* Views */
 .view{display:none;animation:fade .25s ease}

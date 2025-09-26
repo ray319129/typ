@@ -85,7 +85,7 @@
     bindSettings();
     bindPractice();
     lazyLoadData();
-    fetchRecentCommits();
+    fetchVersionFromCommits();
   }
 
   function bindNav(){
@@ -108,27 +108,23 @@
   // -------------------------
   // 顯示最近推送（短 SHA）
   // -------------------------
-  function fetchRecentCommits(){
-    const listEl = document.getElementById('commitList');
-    if(!listEl) return;
-    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=5',{cache:'no-store'})
-      .then(r=>r.json())
-      .then(arr=>{
-        if(!Array.isArray(arr)) throw 0;
-        listEl.innerHTML = '';
-        arr.forEach(c=>{
-          const shortSha = (c.sha||'').slice(0,7);
-          const a = document.createElement('a');
-          a.className = 'commit-chip';
-          a.href = c.html_url; a.target = '_blank'; a.rel='noopener';
-          a.textContent = shortSha;
-          listEl.appendChild(a);
-        });
-        if(!listEl.childNodes.length){ listEl.textContent = '暫無資料'; }
+  function fetchVersionFromCommits(){
+    const el = document.getElementById('versionText');
+    if(!el) return;
+    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=1',{cache:'no-store'})
+      .then(r=>{
+        // 取得 Link header 再查最後一頁頁碼作為總提交數
+        const link = r.headers.get('Link');
+        if(link && link.includes('rel="last"')){
+          const m = link.match(/page=(\d+)>; rel="last"/);
+          if(m){ el.textContent = 'V' + m[1]; return Promise.reject('done'); }
+        }
+        return r.json();
       })
-      .catch(()=>{
-        listEl.textContent = '讀取失敗';
-      });
+      .then(arr=>{
+        if(Array.isArray(arr)) el.textContent = 'V' + arr.length; // 後備
+      })
+      .catch(()=>{/* 已設定或忽略錯誤 */});
   }
 
   function switchView(selector){
@@ -178,9 +174,7 @@
   // 練習邏輯
   // -------------------------
   function bindPractice(){
-    dom.languageFilter.addEventListener('change',()=>{
-      renderPassageList();
-    });
+    // 語言固定為英文，不再提供切換
     if(dom.difficultyFilter){
       dom.difficultyFilter.addEventListener('change',()=>{
         renderPassageList();
@@ -207,7 +201,7 @@
   }
 
   function renderPassageList(){
-    const lang = dom.languageFilter.value || 'en';
+    const lang = 'en';
     const diff = dom.difficultyFilter ? dom.difficultyFilter.value : 'all';
     const list = passages.filter(p=>{
       const okLang = !p.lang || p.lang===lang;
