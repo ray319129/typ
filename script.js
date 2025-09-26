@@ -48,11 +48,11 @@
   // -------------------------
   const STORAGE_KEY = 'tmq_state_v1';
   // XP 階級（只保留 XP，不再使用等級條件）
-  const XP_TIERS = [100, 150, 200, 300, 350];
+  const XP_TIERS = [100, 150, 200, 300, 350, 400];
 
   const state = loadState() || {
     xp: 0,
-    tierIndex: 0, // 0~4 對應 XP_TIERS
+    tierIndex: 0, // 0~5 對應 XP_TIERS
     xpToNext: XP_TIERS[0],
     completedPassages: {}, // { passageId: true }
     rewardsUnlocked: {}, // { rewardId: true }
