@@ -20,6 +20,7 @@
     targetBox: document.getElementById('targetBox'),
     progressFill: document.getElementById('progressFill'),
     typingInput: document.getElementById('typingInput'),
+    startPracticeBtn: document.getElementById('startPracticeBtn'),
     languageFilter: document.getElementById('languageFilter'),
     difficultyFilter: document.getElementById('difficultyFilter'),
     passageItems: document.getElementById('passageItems'),
@@ -72,6 +73,7 @@
   ];
   let selectedPassage = null;
   let startTime = 0;
+  let endTime = 0;
   let typedChars = 0;
   let correctChars = 0;
   let lastCalcAt = 0;
@@ -202,11 +204,12 @@
     }
     dom.typingInput.addEventListener('input', debounce(handleTyping, 16));
     dom.typingInput.addEventListener('keydown', ()=>{
-      if(!startTime){
-        startTime = performance.now();
-        lastCalcAt = startTime;
-      }
+      if(!startTime || dom.typingInput.disabled){ return; }
+      if(!lastCalcAt){ lastCalcAt = performance.now(); }
     });
+    if(dom.startPracticeBtn){
+      dom.startPracticeBtn.addEventListener('click',()=>startPractice());
+    }
     if(dom.submitBtn){
       dom.submitBtn.addEventListener('click',()=>{
         if(dom.submitBtn.disabled || !selectedPassage) return;
@@ -271,13 +274,20 @@
   }
 
   function resetTypingStats(){
-    startTime = 0; typedChars = 0; correctChars = 0; lastCalcAt = 0;
+    startTime = 0; endTime = 0; typedChars = 0; correctChars = 0; lastCalcAt = 0;
     dom.wpmDisplay.textContent = '0';
     dom.accuracyDisplay.textContent = '100%';
     dom.charsDisplay.textContent = '0';
     dom.progressFill.style.width = '0%';
     dom.typingInput.value = '';
     if(dom.submitBtn){ dom.submitBtn.disabled = true; }
+    if(dom.typingInput){ dom.typingInput.disabled = true; }
+  }
+
+  function startPractice(){
+    resetTypingStats();
+    startTime = performance.now();
+    if(dom.typingInput){ dom.typingInput.disabled = false; dom.typingInput.focus(); }
   }
 
   function handleTyping(){
@@ -322,7 +332,8 @@
 
     // 完成檢查
     if(typedChars>=target.length){
-      onFinish({ wpm: grossWpm, accuracy, chars: typedChars });
+      endTime = performance.now();
+      onFinish({ wpm: grossWpm, accuracy, chars: typedChars, ms: Math.max(0, Math.round(endTime - startTime)) });
     }
   }
 
@@ -360,11 +371,22 @@
   }
 
   function showResultModal(data){
+    const ms = data.ms ?? (endTime && startTime ? Math.max(0, Math.round(endTime - startTime)) : 0);
+    const seconds = (ms/1000).toFixed(2);
+    const bestMsKey = 'tmq_best_ms';
+    const prevBest = Number(localStorage.getItem(bestMsKey) || 0);
+    let best = prevBest>0 ? prevBest : 0;
+    if(ms>0 && (best===0 || ms<best)){
+      best = ms; localStorage.setItem(bestMsKey, String(best));
+    }
+    const bestSeconds = best>0 ? (best/1000).toFixed(2) : '-';
     dom.resultContent.innerHTML = `
       <div>段落：<strong>${escapeHtml(selectedPassage.title)}</strong></div>
       <div>WPM：<strong>${data.wpm}</strong></div>
       <div>準確率：<strong>${data.accuracy}%</strong></div>
       <div>字元數：<strong>${data.chars}</strong></div>
+      <div>本次時間：<strong>${seconds}s</strong></div>
+      <div>最佳時間：<strong>${bestSeconds}s</strong></div>
     `;
     dom.resultModal.hidden = false;
   }
