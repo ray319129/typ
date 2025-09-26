@@ -134,14 +134,14 @@
   }
 
   function lazyLoadData(){
-    // 延遲載入 passages 與 rewards
-    fetch('./passages.json').then(r=>r.json()).then(data=>{
+    // 延遲載入 passages 與 rewards（避免快取）
+    fetch('./passages.json', { cache: 'no-store' }).then(r=>r.json()).then(data=>{
       passages = data;
       renderPassageList();
     }).catch(()=>{
       passages = [];
     });
-    fetch('./rewards.json').then(r=>r.json()).then(data=>{
+    fetch('./rewards.json', { cache: 'no-store' }).then(r=>r.json()).then(data=>{
       rewards = data;
       renderRewards();
     }).catch(()=>{ rewards = {}; });
@@ -169,6 +169,8 @@
     if(dom.submitBtn){
       dom.submitBtn.addEventListener('click',()=>{
         if(dom.submitBtn.disabled || !selectedPassage) return;
+        // 只有在送出時才結算 XP 與升級
+        finalizeAndScore(lastResult || { wpm:0, accuracy:0, chars:0 });
         showResultModal(lastResult || { wpm:0, accuracy:0, chars:0 });
       });
     }
@@ -282,10 +284,15 @@
     state.highScores.push({ id: selectedPassage.id, ...result, date: new Date().toISOString() });
     if(state.highScores.length>50) state.highScores.shift();
 
+    // 僅完成輸入，暫不給分；待送出時 finalize
+    lastResult = result;
+    if(dom.submitBtn){ dom.submitBtn.disabled = false; }
+  }
+
+  function finalizeAndScore(result){
     // 等級需求
     const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
     const reach = result.wpm>=req.wpm && result.accuracy>=req.accuracy;
-    // 完成本關（一次）給予 XP
     const earnedXp = reach ? 25 : 10;
     gainXp(earnedXp);
     state.completedPassages[selectedPassage.id] = true;
@@ -302,10 +309,6 @@
     saveState();
     renderLevelXP();
     renderRewards();
-
-    // 啟用送出
-    lastResult = result;
-    if(dom.submitBtn){ dom.submitBtn.disabled = false; }
   }
 
   function showResultModal(data){
@@ -331,6 +334,8 @@
 
   function levelUp(){
     state.currentLevel += 1;
+    saveState();
+    renderLevelXP();
     flashNote(`恭喜升到 Lv.${state.currentLevel}！`);
     celebrate();
     unlockRewardForLevel(state.currentLevel);
