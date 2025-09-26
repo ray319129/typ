@@ -398,6 +398,8 @@
       state.tierIndex = Math.min(state.tierIndex + 1, XP_TIERS.length - 1);
       state.xpToNext = XP_TIERS[state.tierIndex];
       leveled = true;
+      // 觸發升階：更新介面與獎勵解鎖
+      levelUp();
     }
     return leveled;
   }
@@ -406,12 +408,14 @@
     saveState();
     renderLevelXP();
     setTimeout(renderLevelXP, 0);
-    flashNote(`恭喜晉升 XP 級距！`);
+    flashNote(`恭喜晉升 XP 級距 ${state.tierIndex+1}！`);
     celebrate();
-    unlockRewardForLevel(state.tierIndex + 1); // 維持原本以 levelX 對應
+    // tierIndex 1 -> 解鎖 level1，以此類推
+    unlockRewardForLevel(state.tierIndex);
   }
 
   function unlockRewardForLevel(level){
+    // level 對應 rewards.json 的 key（level1 = 綠芽）
     const key = 'level'+level;
     const r = rewards[key];
     if(!r) return;
