@@ -85,6 +85,7 @@
     bindSettings();
     bindPractice();
     lazyLoadData();
+    fetchRecentCommits();
   }
 
   function bindNav(){
@@ -102,6 +103,32 @@
         setTimeout(()=>dom.typingInput.focus(), 50);
       });
     }
+  }
+
+  // -------------------------
+  // 顯示最近推送（短 SHA）
+  // -------------------------
+  function fetchRecentCommits(){
+    const listEl = document.getElementById('commitList');
+    if(!listEl) return;
+    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=5',{cache:'no-store'})
+      .then(r=>r.json())
+      .then(arr=>{
+        if(!Array.isArray(arr)) throw 0;
+        listEl.innerHTML = '';
+        arr.forEach(c=>{
+          const shortSha = (c.sha||'').slice(0,7);
+          const a = document.createElement('a');
+          a.className = 'commit-chip';
+          a.href = c.html_url; a.target = '_blank'; a.rel='noopener';
+          a.textContent = shortSha;
+          listEl.appendChild(a);
+        });
+        if(!listEl.childNodes.length){ listEl.textContent = '暫無資料'; }
+      })
+      .catch(()=>{
+        listEl.textContent = '讀取失敗';
+      });
   }
 
   function switchView(selector){
