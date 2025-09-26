@@ -45,18 +45,13 @@
   // 狀態與常數
   // -------------------------
   const STORAGE_KEY = 'tmq_state_v1';
-  const DEFAULT_LEVEL_REQUIREMENTS = {
-    1: { wpm: 20, accuracy: 95, count: 5 },
-    2: { wpm: 25, accuracy: 95, count: 6 },
-    3: { wpm: 30, accuracy: 95, count: 7 },
-    4: { wpm: 35, accuracy: 96, count: 8 },
-    5: { wpm: 40, accuracy: 96, count: 10 }
-  };
+  // XP 階級（只保留 XP，不再使用等級條件）
+  const XP_TIERS = [100, 150, 200, 300, 350];
 
   const state = loadState() || {
-    currentLevel: 1,
     xp: 0,
-    xpToNext: 100,
+    tierIndex: 0, // 0~4 對應 XP_TIERS
+    xpToNext: XP_TIERS[0],
     completedPassages: {}, // { passageId: true }
     rewardsUnlocked: {}, // { rewardId: true }
     theme: 'light',
@@ -355,18 +350,14 @@
     const earnedXp = XP_BY_DIFF[diff] ?? 10;
 
     // 當前等級需求，用於是否計入升級判定
-    const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
-    const reach = result.wpm>=req.wpm && result.accuracy>=req.accuracy;
+    // 以 XP 模式不再檢查 WPM/準確率門檻，只以 XP 提升階級
+    const reach = true;
 
     // 統計完成數並標記本篇完成
     state.completedPassages[selectedPassage.id] = true;
     const leveledByXp = gainXp(earnedXp);
 
-    const totalInLevel = passages.filter(p=>p.level===state.currentLevel).length || req.count;
-    const completedInLevel = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
-    if(!leveledByXp && reach && completedInLevel>=Math.min(req.count,totalInLevel)){
-      levelUp();
-    }
+    // 不再依靠完成篇數升級
 
     saveState();
     renderLevelXP();
@@ -417,25 +408,22 @@
   function gainXp(x){
     state.xp += x;
     let leveled = false;
-    while(state.xp>=state.xpToNext){
+    while(state.xp>=state.xpToNext && state.tierIndex < XP_TIERS.length){
       state.xp -= state.xpToNext;
-      state.xpToNext = Math.min(200, Math.round(state.xpToNext*1.2));
-      levelUp();
+      state.tierIndex = Math.min(state.tierIndex + 1, XP_TIERS.length - 1);
+      state.xpToNext = XP_TIERS[state.tierIndex];
       leveled = true;
     }
     return leveled;
   }
 
   function levelUp(){
-    state.currentLevel += 1;
     saveState();
-    // 立即刷新介面，避免延遲造成等級未更新的誤解
     renderLevelXP();
-    // 再次刷新以確保跨頁元件（首頁徽章、等級頁條）同步
     setTimeout(renderLevelXP, 0);
-    flashNote(`恭喜升到 Lv.${state.currentLevel}！`);
+    flashNote(`恭喜晉升 XP 級距！`);
     celebrate();
-    unlockRewardForLevel(state.currentLevel);
+    unlockRewardForLevel(state.tierIndex + 1); // 維持原本以 levelX 對應
   }
 
   function unlockRewardForLevel(level){
@@ -446,14 +434,13 @@
   }
 
   function renderLevelXP(){
-    dom.currentLevelLabel.textContent = 'Lv. ' + state.currentLevel;
+    dom.currentLevelLabel.textContent = 'XP Tier ' + (state.tierIndex+1);
     const percent = Math.round((state.xp/state.xpToNext)*100);
     dom.xpFill.style.width = percent + '%';
     dom.xpText.textContent = `${state.xp} / ${state.xpToNext} XP`;
-    if(dom.levelText){ dom.levelText.textContent = String(state.currentLevel); }
+    if(dom.levelText){ dom.levelText.textContent = String(state.tierIndex+1); }
     if(dom.levelFill){ dom.levelFill.style.width = percent + '%'; }
-    const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
-    dom.levelReqText.textContent = `晉級需求：Lv.${state.currentLevel} 目標 ${req.wpm} WPM、${req.accuracy}% 準確率`;
+    dom.levelReqText.textContent = `下一級需累積：${state.xpToNext} XP`;
   }
 
   function renderRewards(){
