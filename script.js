@@ -2,6 +2,8 @@
 // 目標：單檔即可於 GitHub Pages 靜態主機上運作
 
 (function(){
+  // 每次推送時更新此五碼（手動或由腳本自動更新）
+  const BUILD_CODE = 'K7Q9X';
   const dom = {
     views: Array.from(document.querySelectorAll('.view')),
     navLinks: Array.from(document.querySelectorAll('.nav-link')),
@@ -88,7 +90,7 @@
     bindSettings();
     bindPractice();
     lazyLoadData();
-    fetchVersionFromCommits();
+    setVersionTag();
   }
 
   function bindNav(){
@@ -108,27 +110,10 @@
     }
   }
 
-  // -------------------------
-  // 顯示最近推送（短 SHA）
-  // -------------------------
-  function fetchVersionFromCommits(){
+  function setVersionTag(){
     const el = document.getElementById('versionText');
     if(!el) return;
-    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=1',{cache:'no-store', headers:{'Accept':'application/vnd.github+json'}})
-      .then(r=>{
-        // 取得 Link header 再查最後一頁頁碼作為總提交數
-        const link = r.headers.get('Link');
-        if(link && link.includes('rel="last"')){
-          const m = link.match(/page=(\d+)>; rel="last"/);
-          if(m){ el.textContent = 'V' + m[1]; return Promise.reject('done'); }
-        }
-        if(r.status===403){ el.textContent = 'V?'; return Promise.reject('done'); }
-        return r.json();
-      })
-      .then(arr=>{
-        if(Array.isArray(arr)) el.textContent = 'V' + arr.length; // 後備
-      })
-      .catch(()=>{/* 已設定或忽略錯誤 */});
+    el.textContent = BUILD_CODE;
   }
 
   function switchView(selector){
