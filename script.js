@@ -353,16 +353,13 @@
     const lastUnlockedKey = unlockedList[unlockedList.length-1];
     const lastUnlockedName = lastUnlockedKey ? (rewards[lastUnlockedKey]?.name || lastUnlockedKey) : '—';
 
-    // 以目前等級重新計算到下一個獎勵的距離
-    const reqNow = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
-    const totalNow = passages.filter(p=>p.level===state.currentLevel).length || reqNow.count;
-    const doneNow = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
-    const remain = Math.max(0, Math.min(reqNow.count,totalNow) - doneNow);
-    const nextRewardKey = 'level'+(state.currentLevel+1);
+    // 依 XP 模式：距離下一獎勵以 XP 計
+    const nextRewardKey = 'level'+(state.tierIndex+1);
     const nextRewardName = rewards[nextRewardKey]?.name || nextRewardKey;
 
     // 顯示在彈窗
-    showResultModal({ ...result, xp: earnedXp, diff, unlockedName: lastUnlockedName, nextRewardName, remain });
+    const remainXp = Math.max(0, (state.xpToNext||0) - (state.x||0));
+    showResultModal({ ...result, xp: earnedXp, diff, unlockedName: lastUnlockedName, nextRewardName, remainXp });
     // 送出後清除輸入
     if(dom.typingInput){ dom.typingInput.value=''; dom.typingInput.disabled = true; }
   }
@@ -382,7 +379,7 @@
       <div>WPM：<strong>${data.wpm}</strong> · 準確率：<strong>${data.accuracy}%</strong> · 字元數：<strong>${data.chars}</strong></div>
       <div>本次時間：<strong>${seconds}s</strong> · 最佳時間：<strong>${bestSeconds}s</strong></div>
       <div>難度：<strong>${escapeHtml(data.diff||selectedPassage.difficulty||'beginner')}</strong> · 本次 XP：<strong>${data.xp ?? '-'}</strong></div>
-      <div>解鎖獎勵：<strong>${escapeHtml(data.unlockedName||'—')}</strong> · 距離下一個獎勵（${escapeHtml(data.nextRewardName||'level'+(state.currentLevel+1))}）還差：<strong>${data.remain ?? 0}</strong> 篇合格段落</div>
+      <div>解鎖獎勵：<strong>${escapeHtml(data.unlockedName||'—')}</strong> · 距離下一個獎勵（${escapeHtml(data.nextRewardName||'level'+(state.tierIndex+1))}）還差：<strong>${data.remainXp ?? 0}</strong> XP</div>
     `;
     dom.resultModal.hidden = false;
   }
