@@ -207,7 +207,7 @@
   }
 
   function renderPassageList(){
-    const lang = dom.languageFilter.value;
+    const lang = dom.languageFilter.value || 'en';
     const diff = dom.difficultyFilter ? dom.difficultyFilter.value : 'all';
     const list = passages.filter(p=>{
       const okLang = !p.lang || p.lang===lang;
