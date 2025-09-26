@@ -349,35 +349,44 @@
   }
 
   function finalizeAndScore(result){
-    // 等級需求
+    // 依難度給予 XP
+    const diff = selectedPassage?.difficulty || 'beginner';
+    const XP_BY_DIFF = { beginner: 10, intermediate: 15, advanced: 25 };
+    const earnedXp = XP_BY_DIFF[diff] ?? 10;
+
+    // 當前等級需求，用於是否計入升級判定
     const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
     const reach = result.wpm>=req.wpm && result.accuracy>=req.accuracy;
-    const earnedXp = reach ? 25 : 10;
-    gainXp(earnedXp);
-    state.completedPassages[selectedPassage.id] = true;
 
-    // 升級檢查：完成數量 + 表現門檻
+    // 統計完成數並標記本篇完成
+    state.completedPassages[selectedPassage.id] = true;
+    gainXp(earnedXp);
+
     const totalInLevel = passages.filter(p=>p.level===state.currentLevel).length || req.count;
     const completedInLevel = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
     if(reach && completedInLevel>=Math.min(req.count,totalInLevel)){
       levelUp();
-    }else{
-      flashNote(`本次獲得 ${earnedXp} XP！繼續努力！`);
     }
 
     saveState();
     renderLevelXP();
     renderRewards();
 
-    // 結算提示：解鎖獎勵與距離下一個獎勵
+    // 結算資訊：解鎖與下一獎勵（改顯示在彈窗）
     const unlockedList = Object.keys(state.rewardsUnlocked||{}).filter(k=>state.rewardsUnlocked[k]);
-    const lastUnlocked = unlockedList[unlockedList.length-1];
-    const nextLevel = state.currentLevel + 1;
-    const nextRewardKey = 'level'+nextLevel;
-    const nextReward = rewards[nextRewardKey];
-    const remain = Math.max(0, Math.min(req.count,totalInLevel) - completedInLevel);
-    const info = `解鎖：${ lastUnlocked ? (rewards[lastUnlocked]?.name || lastUnlocked) : '尚未解鎖' }；距離下一個獎勵${ nextReward ? '（'+(nextReward.name||nextRewardKey)+'）' : '' }還差 ${remain} 篇合格段落`;
-    flashNote(info);
+    const lastUnlockedKey = unlockedList[unlockedList.length-1];
+    const lastUnlockedName = lastUnlockedKey ? (rewards[lastUnlockedKey]?.name || lastUnlockedKey) : '—';
+
+    // 以目前等級重新計算到下一個獎勵的距離
+    const reqNow = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
+    const totalNow = passages.filter(p=>p.level===state.currentLevel).length || reqNow.count;
+    const doneNow = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
+    const remain = Math.max(0, Math.min(reqNow.count,totalNow) - doneNow);
+    const nextRewardKey = 'level'+(state.currentLevel+1);
+    const nextRewardName = rewards[nextRewardKey]?.name || nextRewardKey;
+
+    // 顯示在彈窗
+    showResultModal({ ...result, xp: earnedXp, diff, unlockedName: lastUnlockedName, nextRewardName, remain });
   }
 
   function showResultModal(data){
@@ -397,6 +406,10 @@
       <div>字元數：<strong>${data.chars}</strong></div>
       <div>本次時間：<strong>${seconds}s</strong></div>
       <div>最佳時間：<strong>${bestSeconds}s</strong></div>
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,.08);margin:8px 0" />
+      <div>難度：<strong>${escapeHtml(data.diff||selectedPassage.difficulty||'beginner')}</strong> · 本次 XP：<strong>${data.xp ?? '-'}</strong></div>
+      <div>解鎖獎勵：<strong>${escapeHtml(data.unlockedName||'—')}</strong></div>
+      <div>距離下一個獎勵（${escapeHtml(data.nextRewardName||'level'+(state.currentLevel+1))}）還差：<strong>${data.remain ?? 0}</strong> 篇合格段落</div>
     `;
     dom.resultModal.hidden = false;
   }
