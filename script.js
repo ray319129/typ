@@ -189,7 +189,12 @@
   // 練習邏輯
   // -------------------------
   function bindPractice(){
-    // 語言固定為英文，不再提供切換
+    // 語言固定為英文，不再提供切換；若元素不存在則不綁定
+    if(dom.languageFilter){
+      dom.languageFilter.addEventListener('change',()=>{
+        renderPassageList();
+      });
+    }
     if(dom.difficultyFilter){
       dom.difficultyFilter.addEventListener('change',()=>{
         renderPassageList();
@@ -232,6 +237,13 @@
       dom.passageItems.appendChild(li);
     });
     if(!selectedPassage && list[0]) selectPassage(list[0]);
+    if(!list.length){
+      // 若仍為空，顯示提示
+      const li = document.createElement('li');
+      li.className = 'passage-item';
+      li.textContent = 'No passages available.';
+      dom.passageItems.appendChild(li);
+    }
   }
 
   function selectPassage(passage){
