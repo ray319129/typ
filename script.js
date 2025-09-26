@@ -21,6 +21,7 @@
     progressFill: document.getElementById('progressFill'),
     typingInput: document.getElementById('typingInput'),
     languageFilter: document.getElementById('languageFilter'),
+    difficultyFilter: document.getElementById('difficultyFilter'),
     passageItems: document.getElementById('passageItems'),
     // Levels view
     levelText: document.getElementById('levelText'),
@@ -32,7 +33,11 @@
     darkModeToggle: document.getElementById('darkModeToggle'),
     resetBtn: document.getElementById('resetProgressBtn'),
     // Confetti
-    confettiCanvas: document.getElementById('confettiCanvas')
+    confettiCanvas: document.getElementById('confettiCanvas'),
+    submitBtn: document.getElementById('submitBtn'),
+    resultModal: document.getElementById('resultModal'),
+    resultContent: document.getElementById('resultContent'),
+    closeModalBtn: document.getElementById('closeModalBtn')
   };
 
   // -------------------------
@@ -149,6 +154,11 @@
     dom.languageFilter.addEventListener('change',()=>{
       renderPassageList();
     });
+    if(dom.difficultyFilter){
+      dom.difficultyFilter.addEventListener('change',()=>{
+        renderPassageList();
+      });
+    }
     dom.typingInput.addEventListener('input', debounce(handleTyping, 16));
     dom.typingInput.addEventListener('keydown', ()=>{
       if(!startTime){
@@ -156,11 +166,25 @@
         lastCalcAt = startTime;
       }
     });
+    if(dom.submitBtn){
+      dom.submitBtn.addEventListener('click',()=>{
+        if(dom.submitBtn.disabled || !selectedPassage) return;
+        showResultModal(lastResult || { wpm:0, accuracy:0, chars:0 });
+      });
+    }
+    if(dom.closeModalBtn){
+      dom.closeModalBtn.addEventListener('click',()=>hideResultModal());
+    }
   }
 
   function renderPassageList(){
     const lang = dom.languageFilter.value;
-    const list = passages.filter(p=>!p.lang || p.lang===lang);
+    const diff = dom.difficultyFilter ? dom.difficultyFilter.value : 'all';
+    const list = passages.filter(p=>{
+      const okLang = !p.lang || p.lang===lang;
+      const okDiff = diff==='all' || p.difficulty===diff;
+      return okLang && okDiff;
+    });
     dom.passageItems.innerHTML = '';
     list.forEach(p=>{
       const li = document.createElement('li');
@@ -203,6 +227,7 @@
     dom.charsDisplay.textContent = '0';
     dom.progressFill.style.width = '0%';
     dom.typingInput.value = '';
+    if(dom.submitBtn){ dom.submitBtn.disabled = true; }
   }
 
   function handleTyping(){
@@ -251,6 +276,7 @@
     }
   }
 
+  let lastResult = null;
   function onFinish(result){
     // 記錄分數
     state.highScores.push({ id: selectedPassage.id, ...result, date: new Date().toISOString() });
@@ -276,6 +302,23 @@
     saveState();
     renderLevelXP();
     renderRewards();
+
+    // 啟用送出
+    lastResult = result;
+    if(dom.submitBtn){ dom.submitBtn.disabled = false; }
+  }
+
+  function showResultModal(data){
+    dom.resultContent.innerHTML = `
+      <div>段落：<strong>${escapeHtml(selectedPassage.title)}</strong></div>
+      <div>WPM：<strong>${data.wpm}</strong></div>
+      <div>準確率：<strong>${data.accuracy}%</strong></div>
+      <div>字元數：<strong>${data.chars}</strong></div>
+    `;
+    dom.resultModal.hidden = false;
+  }
+  function hideResultModal(){
+    dom.resultModal.hidden = true;
   }
 
   function gainXp(x){
