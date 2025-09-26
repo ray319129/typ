@@ -360,11 +360,11 @@
 
     // 統計完成數並標記本篇完成
     state.completedPassages[selectedPassage.id] = true;
-    gainXp(earnedXp);
+    const leveledByXp = gainXp(earnedXp);
 
     const totalInLevel = passages.filter(p=>p.level===state.currentLevel).length || req.count;
     const completedInLevel = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
-    if(reach && completedInLevel>=Math.min(req.count,totalInLevel)){
+    if(!leveledByXp && reach && completedInLevel>=Math.min(req.count,totalInLevel)){
       levelUp();
     }
 
@@ -387,6 +387,8 @@
 
     // 顯示在彈窗
     showResultModal({ ...result, xp: earnedXp, diff, unlockedName: lastUnlockedName, nextRewardName, remain });
+    // 送出後清除輸入
+    if(dom.typingInput){ dom.typingInput.value=''; dom.typingInput.disabled = true; }
   }
 
   function showResultModal(data){
@@ -401,15 +403,10 @@
     const bestSeconds = best>0 ? (best/1000).toFixed(2) : '-';
     dom.resultContent.innerHTML = `
       <div>段落：<strong>${escapeHtml(selectedPassage.title)}</strong></div>
-      <div>WPM：<strong>${data.wpm}</strong></div>
-      <div>準確率：<strong>${data.accuracy}%</strong></div>
-      <div>字元數：<strong>${data.chars}</strong></div>
-      <div>本次時間：<strong>${seconds}s</strong></div>
-      <div>最佳時間：<strong>${bestSeconds}s</strong></div>
-      <hr style="border:none;border-top:1px solid rgba(0,0,0,.08);margin:8px 0" />
+      <div>WPM：<strong>${data.wpm}</strong> · 準確率：<strong>${data.accuracy}%</strong> · 字元數：<strong>${data.chars}</strong></div>
+      <div>本次時間：<strong>${seconds}s</strong> · 最佳時間：<strong>${bestSeconds}s</strong></div>
       <div>難度：<strong>${escapeHtml(data.diff||selectedPassage.difficulty||'beginner')}</strong> · 本次 XP：<strong>${data.xp ?? '-'}</strong></div>
-      <div>解鎖獎勵：<strong>${escapeHtml(data.unlockedName||'—')}</strong></div>
-      <div>距離下一個獎勵（${escapeHtml(data.nextRewardName||'level'+(state.currentLevel+1))}）還差：<strong>${data.remain ?? 0}</strong> 篇合格段落</div>
+      <div>解鎖獎勵：<strong>${escapeHtml(data.unlockedName||'—')}</strong> · 距離下一個獎勵（${escapeHtml(data.nextRewardName||'level'+(state.currentLevel+1))}）還差：<strong>${data.remain ?? 0}</strong> 篇合格段落</div>
     `;
     dom.resultModal.hidden = false;
   }
@@ -419,10 +416,14 @@
 
   function gainXp(x){
     state.xp += x;
+    let leveled = false;
     while(state.xp>=state.xpToNext){
       state.xp -= state.xpToNext;
       state.xpToNext = Math.min(200, Math.round(state.xpToNext*1.2));
+      levelUp();
+      leveled = true;
     }
+    return leveled;
   }
 
   function levelUp(){
