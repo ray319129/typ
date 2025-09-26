@@ -64,6 +64,12 @@
 
   let passages = [];
   let rewards = {};
+  // 後備英文段落（若載入 JSON 失敗時使用）
+  const DEFAULT_EN_PASSAGES = [
+    { id:'e1-01', level:1, difficulty:'beginner', lang:'en', title:'Morning Routine', preview:'I wake up early and brew a warm cup of tea', text:'I wake up early and brew a warm cup of tea. The quiet kitchen feels like a tiny harbor before the day begins. I stretch, breathe slowly, and plan a simple to-do list.' },
+    { id:'e2-01', level:2, difficulty:'intermediate', lang:'en', title:'City Walk at Noon', preview:'At noon, the city hums with energy and chatter', text:'At noon, the city hums with energy and chatter. I walk past a park where children play tag, and a street musician plays a bright tune. I grab a sandwich and sit on a sunny bench.' },
+    { id:'e3-01', level:3, difficulty:'advanced', lang:'en', title:'The Library in Rain', preview:'Rain taps on the old library windows as readers settle', text:'Rain taps on the old library windows as readers settle into cozy corners. Pages turn like gentle waves, and the air smells of paper and time. I find a well-worn book, underline a thoughtful line, and feel quietly renewed.' }
+  ];
   let selectedPassage = null;
   let startTime = 0;
   let typedChars = 0;
@@ -158,12 +164,21 @@
 
   function lazyLoadData(){
     // 延遲載入 passages 與 rewards（避免快取）
-    fetch('./passages.json', { cache: 'no-store' }).then(r=>r.json()).then(data=>{
-      passages = data;
-      renderPassageList();
-    }).catch(()=>{
-      passages = [];
-    });
+    fetch('./passages.json', { cache: 'no-store' })
+      .then(r=>{
+        if(!r.ok) throw new Error('passages.json load failed: '+r.status);
+        return r.json();
+      })
+      .then(data=>{
+        if(!Array.isArray(data) || !data.length) throw new Error('empty passages');
+        passages = data;
+        renderPassageList();
+      })
+      .catch(err=>{
+        console.error('[TypeMaster] passages load error', err);
+        passages = DEFAULT_EN_PASSAGES;
+        renderPassageList();
+      });
     fetch('./rewards.json', { cache: 'no-store' }).then(r=>r.json()).then(data=>{
       rewards = data;
       renderRewards();
