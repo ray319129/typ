@@ -415,7 +415,10 @@
   function levelUp(){
     state.currentLevel += 1;
     saveState();
+    // 立即刷新介面，避免延遲造成等級未更新的誤解
     renderLevelXP();
+    // 再次刷新以確保跨頁元件（首頁徽章、等級頁條）同步
+    setTimeout(renderLevelXP, 0);
     flashNote(`恭喜升到 Lv.${state.currentLevel}！`);
     celebrate();
     unlockRewardForLevel(state.currentLevel);
@@ -433,8 +436,8 @@
     const percent = Math.round((state.xp/state.xpToNext)*100);
     dom.xpFill.style.width = percent + '%';
     dom.xpText.textContent = `${state.xp} / ${state.xpToNext} XP`;
-    dom.levelText.textContent = String(state.currentLevel);
-    dom.levelFill.style.width = percent + '%';
+    if(dom.levelText){ dom.levelText.textContent = String(state.currentLevel); }
+    if(dom.levelFill){ dom.levelFill.style.width = percent + '%'; }
     const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
     dom.levelReqText.textContent = `晉級需求：Lv.${state.currentLevel} 目標 ${req.wpm} WPM、${req.accuracy}% 準確率`;
   }
