@@ -119,7 +119,7 @@
   function fetchVersionFromCommits(){
     const el = document.getElementById('versionText');
     if(!el) return;
-    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=1',{cache:'no-store'})
+    fetch('https://api.github.com/repos/ray319129/typ/commits?sha=main&per_page=1',{cache:'no-store', headers:{'Accept':'application/vnd.github+json'}})
       .then(r=>{
         // 取得 Link header 再查最後一頁頁碼作為總提交數
         const link = r.headers.get('Link');
@@ -127,6 +127,7 @@
           const m = link.match(/page=(\d+)>; rel="last"/);
           if(m){ el.textContent = 'V' + m[1]; return Promise.reject('done'); }
         }
+        if(r.status===403){ el.textContent = 'V?'; return Promise.reject('done'); }
         return r.json();
       })
       .then(arr=>{
@@ -213,9 +214,8 @@
     if(dom.submitBtn){
       dom.submitBtn.addEventListener('click',()=>{
         if(dom.submitBtn.disabled || !selectedPassage) return;
-        // 只有在送出時才結算 XP 與升級
+        // 只有在送出時才結算（finalize 內會顯示結算彈窗）
         finalizeAndScore(lastResult || { wpm:0, accuracy:0, chars:0 });
-        showResultModal(lastResult || { wpm:0, accuracy:0, chars:0 });
       });
     }
     if(dom.closeModalBtn){
