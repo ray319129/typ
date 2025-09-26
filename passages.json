@@ -26,6 +26,52 @@
     "preview": "Rain taps on the old library windows as readers settle",
     "text": "Rain taps on the old library windows as readers settle into cozy corners. Pages turn like gentle waves, and the air smells of paper and time. I find a well-worn book, underline a thoughtful line, and feel quietly renewed."
   }
+  ,
+  {
+    "id": "e2-02",
+    "level": 2,
+    "difficulty": "intermediate",
+    "lang": "en",
+    "title": "Essay 1 – Studying Alone or in Groups",
+    "preview": "Studying is an essential part of academic success",
+    "text": "Studying is an essential part of academic success, and people often debate whether it is better to study alone or in groups. Personally, I believe that studying in groups is more effective because students can share ideas and explain difficult concepts to each other. For example, if one person does not understand a math problem, another member of the group might provide a clear explanation. In addition, group study creates motivation since seeing others work hard encourages everyone to stay focused, while studying alone sometimes feels isolating and makes it easier to lose concentration. In conclusion, I strongly prefer group study because it allows for collaboration, mutual support, and higher motivation."
+  },
+  {
+    "id": "e3-02",
+    "level": 3,
+    "difficulty": "advanced",
+    "lang": "en",
+    "title": "Essay 2 – Cell Phones in Classrooms",
+    "preview": "The role of cell phones in classrooms has been a controversial issue",
+    "text": "The role of cell phones in classrooms has been a controversial issue. Some argue that they are a distraction, while others believe they can be powerful learning tools. Cell phones can indeed cause students to lose focus if they use them for games or social media during class; however, if used responsibly, they can support learning by allowing students to quickly search for information, use language-learning applications, or access digital textbooks. Teachers can also integrate phones into lessons by encouraging students to use them for research, so the benefits really depend on how they are managed. Overall, I think cell phones should be allowed in classrooms but with clear rules, because when used wisely they can become valuable educational tools rather than sources of distraction."
+  },
+  {
+    "id": "e3-03",
+    "level": 3,
+    "difficulty": "advanced",
+    "lang": "en",
+    "title": "Essay 3 – Working from Home or in the Office",
+    "preview": "In recent years, working from home has become more common",
+    "text": "In recent years, working from home has become more common, and some people prefer the flexibility of remote work while others value the structure of an office. Working from home saves commuting time and allows employees to balance personal and professional life more easily, and parents, for instance, can spend more time with their children while still completing their tasks. However, the office environment provides better communication, teamwork, and stronger social connections, and some people find it easier to concentrate in a professional setting without home distractions. In conclusion, both options have benefits, but I believe a hybrid model is the best solution since it allows employees to enjoy flexibility while still maintaining collaboration and productivity."
+  },
+  {
+    "id": "e3-04",
+    "level": 3,
+    "difficulty": "advanced",
+    "lang": "en",
+    "title": "Essay 4 – Reading Books or Watching Movies",
+    "preview": "Entertainment plays a significant role in our lives",
+    "text": "Entertainment plays a significant role in our lives, and many people enjoy either reading books or watching movies, but I personally prefer reading books because they offer a deeper experience. Books allow readers to imagine the setting, characters, and emotions in their own way, which makes the experience more personal, and reading also improves vocabulary and writing skills. Although movies are faster and more visually stimulating, they often shorten or simplify the story; for instance, when I read a novel and later watched its movie version, I found that many important details were missing. Therefore, while movies are entertaining, books provide more detail, creativity, and personal growth, which makes reading a more rewarding choice."
+  },
+  {
+    "id": "e2-03",
+    "level": 2,
+    "difficulty": "intermediate",
+    "lang": "en",
+    "title": "Essay 5 – Living in a Big City or Small Town",
+    "preview": "The choice between living in a big city or a small town",
+    "text": "The choice between living in a big city or a small town depends on personal preference, but in my opinion living in a big city is more beneficial because of the opportunities it provides. Big cities offer better job prospects, advanced healthcare, and more educational institutions, and students have access to libraries, universities, and cultural activities such as museums and theaters. Small towns may provide peace and a slower lifestyle, which some people enjoy, but I believe the advantages of cities outweigh the disadvantages, especially for young people seeking career growth. In conclusion, although small towns have their charm, big cities provide more opportunities and resources, which makes them the better choice for most people."
+  }
 ]
 
 

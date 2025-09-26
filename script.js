@@ -368,6 +368,16 @@
     saveState();
     renderLevelXP();
     renderRewards();
+
+    // 結算提示：解鎖獎勵與距離下一個獎勵
+    const unlockedList = Object.keys(state.rewardsUnlocked||{}).filter(k=>state.rewardsUnlocked[k]);
+    const lastUnlocked = unlockedList[unlockedList.length-1];
+    const nextLevel = state.currentLevel + 1;
+    const nextRewardKey = 'level'+nextLevel;
+    const nextReward = rewards[nextRewardKey];
+    const remain = Math.max(0, Math.min(req.count,totalInLevel) - completedInLevel);
+    const info = `解鎖：${ lastUnlocked ? (rewards[lastUnlocked]?.name || lastUnlocked) : '尚未解鎖' }；距離下一個獎勵${ nextReward ? '（'+(nextReward.name||nextRewardKey)+'）' : '' }還差 ${remain} 篇合格段落`;
+    flashNote(info);
   }
 
   function showResultModal(data){
