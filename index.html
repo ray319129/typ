@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TypeMaster Quest | 打字冒險</title>
+    <meta name="description" content="TypeMaster Quest：以 Duolingo 風格打造的美觀、互動打字練習網站。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234CAF50'/><text x='50' y='60' font-size='42' text-anchor='middle' fill='white' font-family='Arial'>T</text></svg>" />
+    <!-- Font Awesome Free -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body>
+    <header class="tmq-header" aria-label="導覽列">
+      <div class="container nav-container">
+        <div class="brand">
+          <i class="fa-solid fa-keyboard"></i>
+          <span>TypeMaster Quest</span>
+        </div>
+        <nav class="nav">
+          <button class="nav-link active" data-target="#home"><i class="fa-solid fa-house"></i> 首頁</button>
+          <button class="nav-link" data-target="#practice"><i class="fa-solid fa-pen"></i> 練習</button>
+          <button class="nav-link" data-target="#levels"><i class="fa-solid fa-layer-group"></i> 等級</button>
+          <button class="nav-link" data-target="#rewards"><i class="fa-solid fa-gift"></i> 獎勵庫</button>
+          <button class="nav-link" data-target="#settings"><i class="fa-solid fa-gear"></i> 設定</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section id="home" class="view active" aria-label="首頁">
+        <div class="container hero">
+          <div class="hero-text">
+            <h1>開始你的打字冒險！</h1>
+            <p>以遊戲化的方式提升輸入速度、準確度與自信心。</p>
+            <div class="progress-overview">
+              <div class="level-badge">
+                <span id="currentLevelLabel">Lv. 1</span>
+              </div>
+              <div class="xp-bar" aria-label="經驗值">
+                <div id="xpFill" class="xp-fill" style="width: 0%"></div>
+              </div>
+              <div class="xp-stats">
+                <span id="xpText">0 / 100 XP</span>
+              </div>
+            </div>
+            <button id="startQuestBtn" class="btn btn-primary">
+              <i class="fa-solid fa-play"></i> 開始挑戰
+            </button>
+          </div>
+          <div class="hero-demo" aria-hidden="true">
+            <div class="demo-card">
+              <div class="demo-typing">
+                <span class="caret"></span>
+                <span class="ghost">正在模擬打字...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="practice" class="view" aria-label="練習">
+        <div class="container practice">
+          <div class="practice-header">
+            <div class="metrics">
+              <div class="metric" aria-label="每分鐘字數">
+                <i class="fa-solid fa-gauge-high"></i>
+                <div>
+                  <div class="metric-label">WPM</div>
+                  <div id="wpmDisplay" class="metric-value">0</div>
+                </div>
+              </div>
+              <div class="metric" aria-label="準確率">
+                <i class="fa-solid fa-bullseye"></i>
+                <div>
+                  <div class="metric-label">準確率</div>
+                  <div id="accuracyDisplay" class="metric-value">100%</div>
+                </div>
+              </div>
+              <div class="metric" aria-label="已輸入字元">
+                <i class="fa-solid fa-hashtag"></i>
+                <div>
+                  <div class="metric-label">字元數</div>
+                  <div id="charsDisplay" class="metric-value">0</div>
+                </div>
+              </div>
+            </div>
+            <div class="level-requirements">
+              <span id="levelReqText">晉級需求：Lv.1 目標 20 WPM、95% 準確率</span>
+            </div>
+          </div>
+
+          <div class="practice-body">
+            <aside class="passage-list" aria-label="段落清單">
+              <div class="passage-list-header">
+                <h3>選擇段落</h3>
+                <select id="languageFilter" aria-label="語言篩選">
+                  <option value="zh-Hant" selected>繁體中文</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              <ul id="passageItems"></ul>
+            </aside>
+
+            <section class="typing-area" aria-label="打字區">
+              <div class="target-box" id="targetBox" aria-live="polite"></div>
+              <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+              </div>
+              <input id="typingInput" class="typing-input" type="text" autocomplete="off" spellcheck="false" aria-label="輸入文字以開始練習" placeholder="在此開始輸入..." autofocus />
+              <div class="typing-hint">提示：輸入會自動聚焦。正確為綠色，錯誤為紅色。</div>
+            </section>
+          </div>
+        </div>
+        <canvas id="confettiCanvas" class="confetti"></canvas>
+      </section>
+
+      <section id="levels" class="view" aria-label="等級">
+        <div class="container levels">
+          <h2><i class="fa-solid fa-layer-group"></i> 等級進度</h2>
+          <div class="level-card">
+            <div class="level-info">
+              <div class="level-current">
+                目前等級：<span id="levelText">1</span>
+              </div>
+              <div class="level-bar">
+                <div id="levelFill" class="level-fill" style="width: 0%"></div>
+              </div>
+              <div class="level-notes" id="levelNotes">完成本等級所有段落即可升級！</div>
+            </div>
+          </div>
+          <div class="level-rules">
+            <h3>升級條件</h3>
+            <ul>
+              <li>最低 WPM（每分鐘字數）需達標</li>
+              <li>準確率需 ≥ 95%</li>
+              <li>完成本級指定段落數量可獲得 XP</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="rewards" class="view" aria-label="獎勵庫">
+        <div class="container rewards">
+          <div class="rewards-header">
+            <h2><i class="fa-solid fa-gift"></i> 獎勵庫</h2>
+            <a class="text-link" href="./rewards.json" target="_blank" rel="noopener">自訂獎勵（開啟 rewards.json）</a>
+          </div>
+          <div id="rewardsGrid" class="rewards-grid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="settings" class="view" aria-label="設定">
+        <div class="container settings">
+          <h2><i class="fa-solid fa-gear"></i> 設定</h2>
+          <div class="setting-item">
+            <label class="switch">
+              <input id="darkModeToggle" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">深色模式</span>
+          </div>
+          <div class="setting-item">
+            <button id="resetProgressBtn" class="btn btn-ghost"><i class="fa-solid fa-rotate-left"></i> 重置進度</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="tmq-footer" aria-label="頁尾">
+      <div class="container">
+        <div>© <span id="year"></span> TypeMaster Quest · 打字冒險</div>
+        <div class="footer-links">
+          <a href="./README.md" target="_blank" rel="noopener">README</a>
+          <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./lib/particles.min.js"></script>
+    <script src="./script.js"></script>
+  </body>
+  </html>
+
+

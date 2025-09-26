@@ -1,0 +1,9 @@
+{
+  "level1": { "type": "badge", "name": "綠芽 Green Leaf", "description": "你的第一株嫩芽！" },
+  "level2": { "type": "theme", "name": "Ocean Blue", "description": "解鎖海洋藍主題氛圍。" },
+  "level3": { "type": "currency", "name": "星星 x50", "description": "可用於兌換趣味小知識。" },
+  "level4": { "type": "audio", "name": "勵志語音包", "description": "完成關卡時播放鼓勵語句。" },
+  "level5": { "type": "badge", "name": "Swift Typist", "description": "你打字像風一樣快。" }
+}
+
+

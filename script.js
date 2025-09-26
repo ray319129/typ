@@ -1,0 +1,439 @@
+// TypeMaster Quest 主腳本（繁中註解）
+// 目標：單檔即可於 GitHub Pages 靜態主機上運作
+
+(function(){
+  const dom = {
+    views: Array.from(document.querySelectorAll('.view')),
+    navLinks: Array.from(document.querySelectorAll('.nav-link')),
+    startBtn: document.getElementById('startQuestBtn'),
+    year: document.getElementById('year'),
+    // Home / Level / XP
+    currentLevelLabel: document.getElementById('currentLevelLabel'),
+    xpFill: document.getElementById('xpFill'),
+    xpText: document.getElementById('xpText'),
+    // Practice metrics
+    wpmDisplay: document.getElementById('wpmDisplay'),
+    accuracyDisplay: document.getElementById('accuracyDisplay'),
+    charsDisplay: document.getElementById('charsDisplay'),
+    levelReqText: document.getElementById('levelReqText'),
+    // Practice area
+    targetBox: document.getElementById('targetBox'),
+    progressFill: document.getElementById('progressFill'),
+    typingInput: document.getElementById('typingInput'),
+    languageFilter: document.getElementById('languageFilter'),
+    passageItems: document.getElementById('passageItems'),
+    // Levels view
+    levelText: document.getElementById('levelText'),
+    levelFill: document.getElementById('levelFill'),
+    levelNotes: document.getElementById('levelNotes'),
+    // Rewards
+    rewardsGrid: document.getElementById('rewardsGrid'),
+    // Settings
+    darkModeToggle: document.getElementById('darkModeToggle'),
+    resetBtn: document.getElementById('resetProgressBtn'),
+    // Confetti
+    confettiCanvas: document.getElementById('confettiCanvas')
+  };
+
+  // -------------------------
+  // 狀態與常數
+  // -------------------------
+  const STORAGE_KEY = 'tmq_state_v1';
+  const DEFAULT_LEVEL_REQUIREMENTS = {
+    1: { wpm: 20, accuracy: 95, count: 5 },
+    2: { wpm: 25, accuracy: 95, count: 6 },
+    3: { wpm: 30, accuracy: 95, count: 7 },
+    4: { wpm: 35, accuracy: 96, count: 8 },
+    5: { wpm: 40, accuracy: 96, count: 10 }
+  };
+
+  const state = loadState() || {
+    currentLevel: 1,
+    xp: 0,
+    xpToNext: 100,
+    completedPassages: {}, // { passageId: true }
+    rewardsUnlocked: {}, // { rewardId: true }
+    theme: 'light',
+    highScores: [] // { id, wpm, accuracy, chars, date }
+  };
+
+  let passages = [];
+  let rewards = {};
+  let selectedPassage = null;
+  let startTime = 0;
+  let typedChars = 0;
+  let correctChars = 0;
+  let lastCalcAt = 0;
+  let audioCtx = null;
+  let progressTimer = null;
+
+  // -------------------------
+  // 初始化
+  // -------------------------
+  init();
+
+  function init(){
+    dom.year.textContent = new Date().getFullYear();
+    applyTheme(state.theme);
+    renderLevelXP();
+    bindNav();
+    bindSettings();
+    bindPractice();
+    lazyLoadData();
+  }
+
+  function bindNav(){
+    dom.navLinks.forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = btn.getAttribute('data-target');
+        switchView(target);
+        dom.navLinks.forEach(b=>b.classList.toggle('active', b===btn));
+      });
+    });
+    if(dom.startBtn){
+      dom.startBtn.addEventListener('click',()=>{
+        switchView('#practice');
+        dom.navLinks.forEach(b=>b.classList.toggle('active', b.getAttribute('data-target')==='#practice'));
+        setTimeout(()=>dom.typingInput.focus(), 50);
+      });
+    }
+  }
+
+  function switchView(selector){
+    dom.views.forEach(v=>v.classList.remove('active'));
+    const el = document.querySelector(selector);
+    if(el){ el.classList.add('active'); }
+  }
+
+  function bindSettings(){
+    dom.darkModeToggle.checked = state.theme === 'dark';
+    dom.darkModeToggle.addEventListener('change',()=>{
+      state.theme = dom.darkModeToggle.checked ? 'dark' : 'light';
+      applyTheme(state.theme);
+      saveState();
+    });
+    dom.resetBtn.addEventListener('click',()=>{
+      if(confirm('確定要重置所有進度嗎？此動作無法復原。')){
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    });
+  }
+
+  function applyTheme(theme){
+    if(theme==='dark'){
+      document.documentElement.setAttribute('data-theme','dark');
+    }else{
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
+  function lazyLoadData(){
+    // 延遲載入 passages 與 rewards
+    fetch('./passages.json').then(r=>r.json()).then(data=>{
+      passages = data;
+      renderPassageList();
+    }).catch(()=>{
+      passages = [];
+    });
+    fetch('./rewards.json').then(r=>r.json()).then(data=>{
+      rewards = data;
+      renderRewards();
+    }).catch(()=>{ rewards = {}; });
+  }
+
+  // -------------------------
+  // 練習邏輯
+  // -------------------------
+  function bindPractice(){
+    dom.languageFilter.addEventListener('change',()=>{
+      renderPassageList();
+    });
+    dom.typingInput.addEventListener('input', debounce(handleTyping, 16));
+    dom.typingInput.addEventListener('keydown', ()=>{
+      if(!startTime){
+        startTime = performance.now();
+        lastCalcAt = startTime;
+      }
+    });
+  }
+
+  function renderPassageList(){
+    const lang = dom.languageFilter.value;
+    const list = passages.filter(p=>!p.lang || p.lang===lang);
+    dom.passageItems.innerHTML = '';
+    list.forEach(p=>{
+      const li = document.createElement('li');
+      li.className = 'passage-item' + (selectedPassage && selectedPassage.id===p.id ? ' active': '');
+      li.innerHTML = `<div><strong>${escapeHtml(p.title)}</strong></div><div style="font-size:12px;color:#6b7280">${escapeHtml(p.preview || p.text.slice(0,26))}…</div>`;
+      li.addEventListener('click',()=>selectPassage(p));
+      dom.passageItems.appendChild(li);
+    });
+    if(!selectedPassage && list[0]) selectPassage(list[0]);
+  }
+
+  function selectPassage(passage){
+    selectedPassage = passage;
+    renderTargetText(passage.text);
+    resetTypingStats();
+    dom.passageItems.querySelectorAll('.passage-item').forEach((el)=>{
+      el.classList.remove('active');
+    });
+    // 高亮當前選項
+    const idx = Array.from(dom.passageItems.children).findIndex(li=>li.querySelector('strong')?.textContent===passage.title);
+    if(idx>=0){ dom.passageItems.children[idx].classList.add('active'); }
+    dom.typingInput.focus();
+  }
+
+  function renderTargetText(text){
+    const frag = document.createDocumentFragment();
+    Array.from(text).forEach((ch)=>{
+      const span = document.createElement('span');
+      span.textContent = ch;
+      frag.appendChild(span);
+    });
+    dom.targetBox.innerHTML='';
+    dom.targetBox.appendChild(frag);
+  }
+
+  function resetTypingStats(){
+    startTime = 0; typedChars = 0; correctChars = 0; lastCalcAt = 0;
+    dom.wpmDisplay.textContent = '0';
+    dom.accuracyDisplay.textContent = '100%';
+    dom.charsDisplay.textContent = '0';
+    dom.progressFill.style.width = '0%';
+    dom.typingInput.value = '';
+  }
+
+  function handleTyping(){
+    if(!selectedPassage) return;
+    const input = dom.typingInput.value;
+    const target = selectedPassage.text;
+    const minLen = Math.min(input.length, target.length);
+    typedChars = input.length;
+
+    // 字元比對與高亮
+    const spans = dom.targetBox.childNodes;
+    correctChars = 0;
+    for(let i=0;i<spans.length;i++){
+      const span = spans[i];
+      const targetChar = target[i] ?? '';
+      const inputChar = input[i] ?? null;
+      if(inputChar===null){
+        span.className = '';
+      }else if(inputChar===targetChar){
+        span.className = 'correct';
+        correctChars++;
+        softBeep(true);
+      }else{
+        span.className = 'wrong';
+        softBeep(false);
+      }
+    }
+
+    const accuracy = typedChars===0 ? 100 : Math.max(0, Math.round((correctChars/typedChars)*100));
+    dom.accuracyDisplay.textContent = accuracy + '%';
+    dom.charsDisplay.textContent = String(typedChars);
+
+    // 進度
+    const progress = Math.min(100, Math.round((minLen/target.length)*100));
+    dom.progressFill.style.width = progress + '%';
+
+    // WPM 計算
+    const now = performance.now();
+    const elapsedMin = startTime ? (now - startTime) / 60000 : 0;
+    const grossWpm = elapsedMin>0 ? Math.round((typedChars/5) / elapsedMin) : 0;
+    dom.wpmDisplay.textContent = String(grossWpm);
+
+    // 完成檢查
+    if(typedChars>=target.length){
+      onFinish({ wpm: grossWpm, accuracy, chars: typedChars });
+    }
+  }
+
+  function onFinish(result){
+    // 記錄分數
+    state.highScores.push({ id: selectedPassage.id, ...result, date: new Date().toISOString() });
+    if(state.highScores.length>50) state.highScores.shift();
+
+    // 等級需求
+    const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
+    const reach = result.wpm>=req.wpm && result.accuracy>=req.accuracy;
+    // 完成本關（一次）給予 XP
+    const earnedXp = reach ? 25 : 10;
+    gainXp(earnedXp);
+    state.completedPassages[selectedPassage.id] = true;
+
+    // 升級檢查：完成數量 + 表現門檻
+    const totalInLevel = passages.filter(p=>p.level===state.currentLevel).length || req.count;
+    const completedInLevel = passages.filter(p=>p.level===state.currentLevel && state.completedPassages[p.id]).length;
+    if(reach && completedInLevel>=Math.min(req.count,totalInLevel)){
+      levelUp();
+    }else{
+      flashNote(`本次獲得 ${earnedXp} XP！繼續努力！`);
+    }
+
+    saveState();
+    renderLevelXP();
+    renderRewards();
+  }
+
+  function gainXp(x){
+    state.xp += x;
+    while(state.xp>=state.xpToNext){
+      state.xp -= state.xpToNext;
+      state.xpToNext = Math.min(200, Math.round(state.xpToNext*1.2));
+    }
+  }
+
+  function levelUp(){
+    state.currentLevel += 1;
+    flashNote(`恭喜升到 Lv.${state.currentLevel}！`);
+    celebrate();
+    unlockRewardForLevel(state.currentLevel);
+  }
+
+  function unlockRewardForLevel(level){
+    const key = 'level'+level;
+    const r = rewards[key];
+    if(!r) return;
+    state.rewardsUnlocked[key] = true;
+  }
+
+  function renderLevelXP(){
+    dom.currentLevelLabel.textContent = 'Lv. ' + state.currentLevel;
+    const percent = Math.round((state.xp/state.xpToNext)*100);
+    dom.xpFill.style.width = percent + '%';
+    dom.xpText.textContent = `${state.xp} / ${state.xpToNext} XP`;
+    dom.levelText.textContent = String(state.currentLevel);
+    dom.levelFill.style.width = percent + '%';
+    const req = DEFAULT_LEVEL_REQUIREMENTS[state.currentLevel] || DEFAULT_LEVEL_REQUIREMENTS[1];
+    dom.levelReqText.textContent = `晉級需求：Lv.${state.currentLevel} 目標 ${req.wpm} WPM、${req.accuracy}% 準確率`;
+  }
+
+  function renderRewards(){
+    dom.rewardsGrid.innerHTML = '';
+    const entries = Object.entries(rewards);
+    entries.forEach(([key, r])=>{
+      const card = document.createElement('div');
+      card.className = 'reward-card';
+      const unlocked = !!state.rewardsUnlocked[key];
+      card.innerHTML = `
+        <div style="font-size:28px;color:${unlocked?'#4CAF50':'#9CA3AF'};text-align:center">
+          <i class="fa-solid ${iconForReward(r)}"></i>
+        </div>
+        <div class="reward-name">${escapeHtml(r.name || key)}</div>
+        <div class="reward-type">${escapeHtml(r.type || '其他')} · ${unlocked?'已解鎖':'未解鎖'}</div>
+        <div style="font-size:12px;color:#6b7280">${escapeHtml(r.description || '')}</div>
+      `;
+      dom.rewardsGrid.appendChild(card);
+    });
+  }
+
+  function iconForReward(r){
+    switch(r.type){
+      case 'badge': return 'fa-leaf';
+      case 'theme': return 'fa-palette';
+      case 'currency': return 'fa-star';
+      case 'audio': return 'fa-microphone';
+      default: return 'fa-gift';
+    }
+  }
+
+  // -------------------------
+  // 視覺與音效
+  // -------------------------
+  function flashNote(text){
+    const div = document.createElement('div');
+    div.textContent = text;
+    Object.assign(div.style,{
+      position:'fixed',left:'50%',top:'18px',transform:'translateX(-50%)',
+      background:'#141a1b',color:'#fff',padding:'10px 14px',borderRadius:'999px',
+      boxShadow:'0 10px 30px rgba(0,0,0,.25)',zIndex:50,opacity:'0',transition:'opacity .2s, transform .2s'
+    });
+    document.body.appendChild(div);
+    requestAnimationFrame(()=>{
+      div.style.opacity='1';
+      div.style.transform='translateX(-50%) translateY(0)';
+    });
+    setTimeout(()=>{
+      div.style.opacity='0';
+      div.style.transform='translateX(-50%) translateY(-6px)';
+      setTimeout(()=>div.remove(),220);
+    }, 1600);
+  }
+
+  function celebrate(){
+    // 簡易彩帶動畫（不依賴外部庫）
+    const ctx = dom.confettiCanvas.getContext('2d');
+    const { width, height } = dom.confettiCanvas;
+    dom.confettiCanvas.width = innerWidth; dom.confettiCanvas.height = innerHeight;
+    const particles = Array.from({length:120}).map(()=>({
+      x: Math.random()*innerWidth,
+      y: -20 - Math.random()*200,
+      r: 3+Math.random()*4,
+      vx: -1+Math.random()*2,
+      vy: 2+Math.random()*3,
+      color: `hsl(${Math.random()*360},80%,60%)`,
+      life: 0
+    }));
+    let running = true;
+    const start = performance.now();
+    (function loop(){
+      if(!running) return;
+      ctx.clearRect(0,0,dom.confettiCanvas.width,dom.confettiCanvas.height);
+      particles.forEach(p=>{
+        p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.life += 1;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      });
+      if(performance.now()-start<2000){
+        requestAnimationFrame(loop);
+      }else{
+        running = false; ctx.clearRect(0,0,dom.confettiCanvas.width,dom.confettiCanvas.height);
+      }
+    })();
+  }
+
+  function softBeep(correct){
+    // Web Audio API：輕微提示音，不干擾打字
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.value = correct ? 880 : 220;
+      g.gain.value = 0.02;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, 35);
+    }catch(e){/* 忽略音效失敗 */}
+  }
+
+  // -------------------------
+  // 儲存
+  // -------------------------
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  // -------------------------
+  // 工具
+  // -------------------------
+  function debounce(fn, wait){
+    let t; return function(){ clearTimeout(t); t = setTimeout(()=>fn.apply(this, arguments), wait); };
+  }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"]/g, function(s){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]);
+    });
+  }
+})();
+
+
