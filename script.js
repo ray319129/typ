@@ -1,9 +1,6 @@
-// TypeMaster Quest 主腳本（繁中註解）
-// 目標：單檔即可於 GitHub Pages 靜態主機上運作
-
 (function(){
   // 每次推送時更新此五碼（手動或由腳本自動更新）
-  const BUILD_CODE = 'K7Q9X';
+  const BUILD_CODE = 'M8P2Y';
   const dom = {
     views: Array.from(document.querySelectorAll('.view')),
     navLinks: Array.from(document.querySelectorAll('.nav-link')),
@@ -74,7 +71,6 @@
   let typedChars = 0;
   let correctChars = 0;
   let lastCalcAt = 0;
-  let audioCtx = null;
   let progressTimer = null;
 
   // -------------------------
@@ -183,6 +179,21 @@
         renderPassageList();
       });
     }
+    
+    // 禁用複製貼上功能
+    dom.typingInput.addEventListener('paste', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    dom.typingInput.addEventListener('copy', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    dom.typingInput.addEventListener('cut', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    
     dom.typingInput.addEventListener('input', debounce(handleTyping, 16));
     dom.typingInput.addEventListener('keydown', ()=>{
       if(!startTime || dom.typingInput.disabled){ return; }
@@ -289,10 +300,8 @@
       }else if(inputChar===targetChar){
         span.className = 'correct';
         correctChars++;
-        softBeep(true);
       }else{
         span.className = 'wrong';
-        softBeep(false);
       }
     }
 
@@ -358,7 +367,7 @@
     const nextRewardName = rewards[nextRewardKey]?.name || nextRewardKey;
 
     // 顯示在彈窗
-    const remainXp = Math.max(0, (state.xpToNext||0) - (state.x||0));
+    const remainXp = Math.max(0, (state.xpToNext||0) - (state.xp||0));
     showResultModal({ ...result, xp: earnedXp, diff, unlockedName: lastUnlockedName, nextRewardName, remainXp });
     // 送出後清除輸入
     if(dom.typingInput){ dom.typingInput.value=''; dom.typingInput.disabled = true; }
@@ -459,7 +468,7 @@
   }
 
   // -------------------------
-  // 視覺與音效
+  // 視覺與動畫
   // -------------------------
   function flashNote(text){
     const div = document.createElement('div');
@@ -513,21 +522,6 @@
     })();
   }
 
-  function softBeep(correct){
-    // Web Audio API：輕微提示音，不干擾打字
-    try{
-      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.value = correct ? 880 : 220;
-      g.gain.value = 0.02;
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start();
-      setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, 35);
-    }catch(e){/* 忽略音效失敗 */}
-  }
-
   // -------------------------
   // 儲存
   // -------------------------
@@ -553,5 +547,3 @@
     });
   }
 })();
-
-
